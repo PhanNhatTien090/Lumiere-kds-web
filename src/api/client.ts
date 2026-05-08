@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://lumiere-kds-web.vercel.app";
-const AI_BASE_URL = import.meta.env.VITE_AI_BASE_URL || "https://lumiere-kds-web.vercel.app/api/v1";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://lumiere-restaurant-backend.onrender.com";
+const AI_BASE_URL = import.meta.env.VITE_AI_BASE_URL || "https://lumiere-restaurant-backend.onrender.com/api/v1";
 const IDEMPOTENCY_KEY_HEADER = "X-Idempotency-Key";
 export const ACCESS_TOKEN_STORAGE_KEY = "accessToken";
 export const AUTH_EXPIRED_EVENT = "kds-auth-expired";
