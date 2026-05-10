@@ -16,6 +16,17 @@ export const kitchenAPI = {
     coreInstance.get<ApiResponse<KitchenTaskResponse[]>>("/kitchen/tasks", {
       params: status ? { status } : undefined,
     }),
+  /** Paginated DONE/CANCELLED history — used by "Đã xong" tab. */
+  listCompletedTasksPaged: (params: { page?: number; size?: number }) =>
+    coreInstance.get<ApiResponse<{
+      content: KitchenTaskResponse[];
+      page: number;
+      size: number;
+      totalElements: number;
+      totalPages: number;
+    }>>("/kitchen/tasks/paged", {
+      params: { page: params.page ?? 0, size: params.size ?? 20 },
+    }),
   startTask: (taskId: number) =>
     coreInstance.put<ApiResponse<KitchenTaskResponse>>(`/kitchen/tasks/${taskId}/start`),
   doneTask: (taskId: number) =>

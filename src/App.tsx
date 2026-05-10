@@ -11,7 +11,7 @@ import { authAPI, kitchenAPI } from "./api/endpoints";
 import { useKdsStore } from "./store/kdsStore";
 import { useKitchenSocket } from "./hooks/useKitchenSocket";
 import { useAudioNotification } from "./hooks/useAudioNotification";
-import { KdsTaskDisplay, KitchenBatchResponse } from "./types";
+import { KdsTaskDisplay, KitchenBatchResponse, KitchenTaskResponse } from "./types";
 
 // ─── Polling intervals ────────────────────────────────────────────────────────
 // IMPORTANT: Keep intervals HIGH to avoid flooding the backend DB connection pool.
@@ -27,6 +27,16 @@ export default function App() {
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [errorDismissed, setErrorDismissed] = useState(false);
+
+  // ─── Completed tasks pagination ─────────────────────────────────────────────
+  // Loaded only when the "Đã xong" tab is opened. Decoupled from live polling
+  // so completed history doesn't bloat every 10s tick.
+  const [completedTasksList, setCompletedTasksList] = useState<KitchenTaskResponse[]>([]);
+  const [completedPage, setCompletedPage] = useState(0);
+  const [completedSize, setCompletedSize] = useState(20);
+  const [completedTotalElements, setCompletedTotalElements] = useState(0);
+  const [completedTotalPages, setCompletedTotalPages] = useState(0);
+  const [completedLoading, setCompletedLoading] = useState(false);
   // Guard: don't start a new poll while previous one is still in-flight
   const isPollingRef = useRef(false);
   // Track previous CREATED task IDs to detect genuinely new arrivals
@@ -102,6 +112,29 @@ export default function App() {
       if (!silent) setLoading(false);
     }
   }, [setTasks, setLoading, setError, handleApiError]);
+
+  // ─── Fetch: Completed tasks (paginated) ───────────────────────────────────
+
+  const fetchCompletedTasks = useCallback(
+    async (page: number, size: number) => {
+      setCompletedLoading(true);
+      try {
+        const res = await kitchenAPI.listCompletedTasksPaged({ page, size });
+        const data = res.data.data;
+        setCompletedTasksList(data.content);
+        setCompletedPage(data.page);
+        setCompletedSize(data.size);
+        setCompletedTotalElements(data.totalElements);
+        setCompletedTotalPages(data.totalPages);
+        setError(null);
+      } catch (err) {
+        handleApiError(err, 'Không thể tải lịch sử task hoàn thành');
+      } finally {
+        setCompletedLoading(false);
+      }
+    },
+    [handleApiError, setError]
+  );
 
   // ─── Fetch: Batches ───────────────────────────────────────────────────────
 
@@ -183,6 +216,13 @@ export default function App() {
     const interval = window.setInterval(() => setNow(new Date()), 1000);
     return () => window.clearInterval(interval);
   }, []);
+
+  // ─── Auto-fetch completed tasks when entering the tab or page-size changes ──
+
+  useEffect(() => {
+    if (!isAuthenticated || activeTab !== 'completed') return;
+    void fetchCompletedTasks(0, completedSize);
+  }, [activeTab, isAuthenticated, completedSize, fetchCompletedTasks]);
 
   // ─── Audio: detect new CREATED tasks ─────────────────────────────────────
   // Only fires when there are genuinely new tasks (not on initial data load).
@@ -311,9 +351,26 @@ export default function App() {
     () => taskDisplayList.filter((t) => t.status === 'CREATED' || t.status === 'COOKING'),
     [taskDisplayList]
   );
-  const completedTasks = useMemo(
-    () => taskDisplayList.filter((t) => t.status === 'DONE' || t.status === 'CANCELLED'),
-    [taskDisplayList]
+  const completedTasks = useMemo<KdsTaskDisplay[]>(
+    () =>
+      completedTasksList.map((task) => ({
+        taskId:            task.id,
+        orderId:           task.orderId,
+        orderItemId:       task.orderItemId,
+        tableId:           task.tableId,
+        menuItemId:        task.menuItemId,
+        dishName:          task.menuItemName ?? `Món #${task.orderItemId}`,
+        imageUrl:          task.menuItemImageUrl,
+        quantity:          task.quantity,
+        itemNote:          task.orderItemNote,
+        orderNote:         task.orderNote,
+        expectedCookTime:  task.expectedCookTime,
+        status:            task.status,
+        startedAt:         task.startedAt,
+        completedAt:       task.completedAt,
+        actualCookSeconds: task.actualCookSeconds,
+      })),
+    [completedTasksList]
   );
   const activeBatches = useMemo<KitchenBatchResponse[]>(
     () => batches.filter((b) => b.status !== 'DONE'),
@@ -330,7 +387,13 @@ export default function App() {
 
   const waitingCount  = liveTasks.filter((t) => t.status === 'CREATED').length;
   const cookingCount  = liveTasks.filter((t) => t.status === 'COOKING').length;
-  const doneCount     = completedTasks.length;
+  // Count from the polling stream so the header badge stays in sync without
+  // needing the user to open the completed tab. Falls back to paged total
+  // once the user has navigated there.
+  const doneCount = useMemo(
+    () => taskDisplayList.filter((t) => t.status === 'DONE' || t.status === 'CANCELLED').length,
+    [taskDisplayList]
+  );
   const isErrorVisible = !!error && !errorDismissed;
 
   // ─── Render ───────────────────────────────────────────────────────────────
@@ -413,7 +476,18 @@ export default function App() {
             onDone={(batchId)    => { void runBatchAction(batchId, 'done'); }}
           />
         )}
-        {activeTab === 'completed' && <TabCompleted tasks={completedTasks} />}
+        {activeTab === 'completed' && (
+          <TabCompleted
+            tasks={completedTasks}
+            page={completedPage}
+            size={completedSize}
+            totalElements={completedTotalElements}
+            totalPages={completedTotalPages}
+            loading={completedLoading}
+            onPageChange={(p) => { void fetchCompletedTasks(p, completedSize); }}
+            onSizeChange={(s) => { setCompletedSize(s); }}
+          />
+        )}
       </main>
     </div>
   );

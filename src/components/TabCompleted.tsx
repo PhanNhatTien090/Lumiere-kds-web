@@ -1,10 +1,19 @@
 import React from 'react';
 import { KdsTaskDisplay } from '@/types';
-import { Check, X, Clock, Archive } from 'lucide-react';
+import { Check, X, Clock, Archive, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 
 interface TabCompletedProps {
   tasks: KdsTaskDisplay[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  loading: boolean;
+  onPageChange: (page: number) => void;
+  onSizeChange: (size: number) => void;
 }
+
+const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
 const formatDuration = (seconds: number): string => {
   const h = Math.floor(seconds / 3600);
@@ -13,8 +22,22 @@ const formatDuration = (seconds: number): string => {
   return [h, m, s].map((n) => String(n).padStart(2, '0')).join(':');
 };
 
-export const TabCompleted: React.FC<TabCompletedProps> = ({ tasks }) => {
-  if (tasks.length === 0) {
+export const TabCompleted: React.FC<TabCompletedProps> = ({
+  tasks,
+  page,
+  size,
+  totalElements,
+  totalPages,
+  loading,
+  onPageChange,
+  onSizeChange,
+}) => {
+  const doneTasks      = tasks.filter((t) => t.status === 'DONE');
+  const cancelledTasks = tasks.filter((t) => t.status === 'CANCELLED');
+  const showingFrom = totalElements === 0 ? 0 : page * size + 1;
+  const showingTo = Math.min((page + 1) * size, totalElements);
+
+  if (totalElements === 0 && !loading) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center px-6">
         <div className="w-16 h-16 rounded-full bg-kds-card border border-kds-border flex items-center justify-center mb-4">
@@ -26,32 +49,97 @@ export const TabCompleted: React.FC<TabCompletedProps> = ({ tasks }) => {
     );
   }
 
-  const doneTasks      = tasks.filter((t) => t.status === 'DONE');
-  const cancelledTasks = tasks.filter((t) => t.status === 'CANCELLED');
-
   return (
     <div className="p-6 space-y-3 max-w-5xl mx-auto">
       {/* Summary bar */}
-      <div className="flex items-center gap-4 text-sm text-gray-500 pb-3 border-b border-kds-border">
-        <span className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-kds-greenText" />
-          <span>{doneTasks.length} hoàn thành</span>
-        </span>
-        {cancelledTasks.length > 0 && (
+      <div className="flex items-center justify-between gap-4 text-sm text-gray-500 pb-3 border-b border-kds-border">
+        <div className="flex items-center gap-4">
           <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-kds-redText" />
-            <span>{cancelledTasks.length} đã hủy</span>
+            <span className="w-2 h-2 rounded-full bg-kds-greenText" />
+            <span>{doneTasks.length} hoàn thành</span>
           </span>
-        )}
+          {cancelledTasks.length > 0 && (
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-kds-redText" />
+              <span>{cancelledTasks.length} đã hủy</span>
+            </span>
+          )}
+        </div>
+        <span className="text-xs text-gray-600">
+          {totalElements > 0
+            ? `Hiển thị ${showingFrom}–${showingTo} / ${totalElements}`
+            : null}
+        </span>
       </div>
+
+      {/* Loading hint */}
+      {loading && (
+        <div className="text-xs text-gray-500 flex items-center gap-2">
+          <span className="w-3 h-3 border-2 border-gray-600 border-t-gray-400 rounded-full animate-spin" />
+          Đang tải...
+        </div>
+      )}
 
       {/* Task list */}
       {tasks.map((task) => (
         <CompletedRow key={task.taskId} task={task} />
       ))}
+
+      {/* Pagination controls */}
+      {totalPages > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-4 mt-2 border-t border-kds-border">
+          <div className="flex items-center gap-2 text-xs text-gray-400">
+            <span>Số dòng / trang:</span>
+            <select
+              value={size}
+              disabled={loading}
+              onChange={(e) => onSizeChange(Number(e.target.value))}
+              className="bg-kds-card border border-kds-border rounded px-2 py-1 text-gray-200"
+            >
+              {PAGE_SIZE_OPTIONS.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-1">
+            <PageBtn disabled={loading || page === 0} onClick={() => onPageChange(0)} title="Trang đầu">
+              <ChevronsLeft size={14} />
+            </PageBtn>
+            <PageBtn disabled={loading || page === 0} onClick={() => onPageChange(page - 1)} title="Trang trước">
+              <ChevronLeft size={14} />
+            </PageBtn>
+            <span className="px-3 text-xs text-gray-300">
+              Trang <b className="text-white">{page + 1}</b> / {totalPages}
+            </span>
+            <PageBtn disabled={loading || page >= totalPages - 1} onClick={() => onPageChange(page + 1)} title="Trang sau">
+              <ChevronRight size={14} />
+            </PageBtn>
+            <PageBtn disabled={loading || page >= totalPages - 1} onClick={() => onPageChange(totalPages - 1)} title="Trang cuối">
+              <ChevronsRight size={14} />
+            </PageBtn>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
+const PageBtn: React.FC<{
+  disabled: boolean;
+  onClick: () => void;
+  title: string;
+  children: React.ReactNode;
+}> = ({ disabled, onClick, title, children }) => (
+  <button
+    type="button"
+    disabled={disabled}
+    onClick={onClick}
+    title={title}
+    className="p-1.5 rounded border border-kds-border bg-kds-card text-gray-300 hover:bg-kds-border disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+  >
+    {children}
+  </button>
+);
 
 const CompletedRow: React.FC<{ task: KdsTaskDisplay }> = ({ task }) => {
   const isDone      = task.status === 'DONE';
