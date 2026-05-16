@@ -1,6 +1,6 @@
 import React from 'react';
 import { KdsTaskDisplay, KitchenTaskStatus } from '@/types';
-import { AlertTriangle, Check, Clock, Flame, Play, UtensilsCrossed } from 'lucide-react';
+import { AlertTriangle, Ban, Check, Clock, Flame, Play, UtensilsCrossed } from 'lucide-react';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -54,10 +54,11 @@ interface TabLiveOrdersProps {
   actionLoadingTaskIds: number[];
   onStartTask: (taskId: number) => void;
   onDoneTask: (taskId: number) => void;
+  onCancelTask: (taskId: number) => void;
 }
 
 export const TabLiveOrders: React.FC<TabLiveOrdersProps> = ({
-  tasks, now, actionLoadingTaskIds, onStartTask, onDoneTask,
+  tasks, now, actionLoadingTaskIds, onStartTask, onDoneTask, onCancelTask,
 }) => {
   // Group tasks by orderId — tasks are already sorted by taskId (oldest first)
   const groups = React.useMemo<OrderGroup[]>(() => {
@@ -95,7 +96,7 @@ export const TabLiveOrders: React.FC<TabLiveOrdersProps> = ({
     );
   }
 
-  const sharedProps = { now, actionLoadingTaskIds, onStart: onStartTask, onDone: onDoneTask };
+  const sharedProps = { now, actionLoadingTaskIds, onStart: onStartTask, onDone: onDoneTask, onCancel: onCancelTask };
 
   return (
     <div className="p-6 space-y-8">
@@ -160,7 +161,8 @@ const OrderGroupCard: React.FC<{
   actionLoadingTaskIds: number[];
   onStart: (taskId: number) => void;
   onDone: (taskId: number) => void;
-}> = ({ group, now, actionLoadingTaskIds, onStart, onDone }) => {
+  onCancel: (taskId: number) => void;
+}> = ({ group, now, actionLoadingTaskIds, onStart, onDone, onCancel }) => {
   const groupUrgency = getGroupUrgency(group.tasks, now);
   const waitingCount = group.tasks.filter((t) => t.status === 'CREATED').length;
   const cookingCount = group.tasks.filter((t) => t.status === 'COOKING').length;
@@ -217,6 +219,7 @@ const OrderGroupCard: React.FC<{
             loading={actionLoadingTaskIds.includes(task.taskId)}
             onStart={onStart}
             onDone={onDone}
+            onCancel={onCancel}
           />
         ))}
       </div>
@@ -230,7 +233,8 @@ const TaskRow: React.FC<{
   loading: boolean;
   onStart: (id: number) => void;
   onDone: (id: number) => void;
-}> = ({ task, now, loading, onStart, onDone }) => {
+  onCancel: (id: number) => void;
+}> = ({ task, now, loading, onStart, onDone, onCancel }) => {
   const urgency = getTaskUrgency(task, now);
   const elapsedSeconds = task.startedAt
     ? Math.max(0, Math.floor((now.getTime() - new Date(task.startedAt).getTime()) / 1000))
@@ -292,7 +296,7 @@ const TaskRow: React.FC<{
       <TaskStatusBadge status={task.status} />
 
       {/* Action button */}
-      <TaskActionButton task={task} loading={loading} onStart={onStart} onDone={onDone} />
+      <TaskActionButton task={task} loading={loading} onStart={onStart} onDone={onDone} onCancel={onCancel} />
     </div>
   );
 };
@@ -322,36 +326,63 @@ const TaskActionButton: React.FC<{
   loading: boolean;
   onStart: (id: number) => void;
   onDone: (id: number) => void;
-}> = ({ task, loading, onStart, onDone }) => {
+  onCancel: (id: number) => void;
+}> = ({ task, loading, onStart, onDone, onCancel }) => {
   if (task.status === 'CREATED') {
     return (
-      <button
-        disabled={loading}
-        onClick={() => onStart(task.taskId)}
-        className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-lg bg-kds-gold text-black text-xs font-bold hover:brightness-110 active:scale-[0.97] transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-kds-gold/50"
-      >
-        {loading
-          ? <span className="w-3 h-3 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-          : <Play size={11} className="fill-current" />
-        }
-        Bắt đầu
-      </button>
+      <div className="shrink-0 flex items-center gap-1.5">
+        <button
+          disabled={loading}
+          onClick={() => onCancel(task.taskId)}
+          className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-kds-redBg border border-kds-redText/40 text-kds-redText text-xs font-bold hover:bg-red-900/30 active:scale-[0.97] transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-kds-redText/40"
+          title="Hủy món"
+        >
+          {loading
+            ? <span className="w-3 h-3 border-2 border-kds-redText/30 border-t-kds-redText rounded-full animate-spin" />
+            : <Ban size={11} />
+          }
+        </button>
+        <button
+          disabled={loading}
+          onClick={() => onStart(task.taskId)}
+          className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-kds-gold text-black text-xs font-bold hover:brightness-110 active:scale-[0.97] transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-kds-gold/50"
+        >
+          {loading
+            ? <span className="w-3 h-3 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+            : <Play size={11} className="fill-current" />
+          }
+          Bắt đầu
+        </button>
+      </div>
     );
   }
 
   if (task.status === 'COOKING') {
     return (
-      <button
-        disabled={loading}
-        onClick={() => onDone(task.taskId)}
-        className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-lg bg-kds-greenBg border border-kds-greenText/50 text-kds-greenText text-xs font-bold hover:bg-green-900/30 active:scale-[0.97] transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-kds-greenText/40"
-      >
-        {loading
-          ? <span className="w-3 h-3 border-2 border-kds-greenText/30 border-t-kds-greenText rounded-full animate-spin" />
-          : <Check size={11} />
-        }
-        Xong
-      </button>
+      <div className="shrink-0 flex items-center gap-1.5">
+        <button
+          disabled={loading}
+          onClick={() => onCancel(task.taskId)}
+          className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-kds-redBg border border-kds-redText/40 text-kds-redText text-xs font-bold hover:bg-red-900/30 active:scale-[0.97] transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-kds-redText/40"
+          title="Hủy món"
+        >
+          {loading
+            ? <span className="w-3 h-3 border-2 border-kds-redText/30 border-t-kds-redText rounded-full animate-spin" />
+            : <Ban size={11} />
+          }
+        </button>
+        <button
+          disabled={loading}
+          onClick={() => onDone(task.taskId)}
+          className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-kds-greenBg border border-kds-greenText/50 text-kds-greenText text-xs font-bold hover:bg-green-900/30 active:scale-[0.97] transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-kds-greenText/40"
+        >
+          {loading
+            ? <span className="w-3 h-3 border-2 border-kds-greenText/30 border-t-kds-greenText rounded-full animate-spin" />
+            : <Check size={11} />
+          }
+          Xong
+        </button>
+      </div>
     );
   }
 

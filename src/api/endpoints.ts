@@ -31,6 +31,8 @@ export const kitchenAPI = {
     coreInstance.put<ApiResponse<KitchenTaskResponse>>(`/kitchen/tasks/${taskId}/start`),
   doneTask: (taskId: number) =>
     coreInstance.put<ApiResponse<KitchenTaskResponse>>(`/kitchen/tasks/${taskId}/done`),
+  cancelTask: (taskId: number) =>
+    coreInstance.put<ApiResponse<KitchenTaskResponse>>(`/kitchen/tasks/${taskId}/cancel`),
 
   // Batches
   listBatches: (status?: KitchenBatchStatus) =>

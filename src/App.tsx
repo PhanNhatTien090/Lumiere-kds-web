@@ -241,11 +241,12 @@ export default function App() {
 
   // ─── Actions: Tasks ───────────────────────────────────────────────────────
 
-  const runTaskAction = useCallback(async (taskId: number, action: 'start' | 'done') => {
+  const runTaskAction = useCallback(async (taskId: number, action: 'start' | 'done' | 'cancel') => {
     setActionLoadingTaskIds((prev) => [...prev, taskId]);
     try {
-      if (action === 'start') await kitchenAPI.startTask(taskId);
-      else                    await kitchenAPI.doneTask(taskId);
+      if (action === 'start')       await kitchenAPI.startTask(taskId);
+      else if (action === 'done')   await kitchenAPI.doneTask(taskId);
+      else if (action === 'cancel') await kitchenAPI.cancelTask(taskId);
       await fetchAllTasks(true);
       setError(null);
     } catch (err) {
@@ -459,8 +460,9 @@ export default function App() {
             tasks={liveTasks}
             now={now}
             actionLoadingTaskIds={actionLoadingTaskIds}
-            onStartTask={(taskId) => { void runTaskAction(taskId, 'start'); }}
-            onDoneTask={(taskId)  => { void runTaskAction(taskId, 'done'); }}
+            onStartTask={(taskId)  => { void runTaskAction(taskId, 'start'); }}
+            onDoneTask={(taskId)   => { void runTaskAction(taskId, 'done'); }}
+            onCancelTask={(taskId) => { void runTaskAction(taskId, 'cancel'); }}
           />
         )}
         {activeTab === 'batching' && (

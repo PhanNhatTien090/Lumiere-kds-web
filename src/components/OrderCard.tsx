@@ -1,12 +1,13 @@
 import React from 'react';
 import { KdsTaskDisplay, KitchenTaskStatus } from '@/types';
-import { Check, Clock, Flame, Play, AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Ban, Check, Clock, Flame, Play } from 'lucide-react';
 
 interface OrderCardProps {
   task: KdsTaskDisplay;
   now: Date;
   onStart: (taskId: number) => void;
   onDone: (taskId: number) => void;
+  onCancel: (taskId: number) => void;
   loading: boolean;
 }
 
@@ -47,7 +48,7 @@ const urgencyTimerStyle: Record<UrgencyLevel, string> = {
   critical: 'text-kds-redText font-bold',
 };
 
-export const OrderCard: React.FC<OrderCardProps> = ({ task, now, onStart, onDone, loading }) => {
+export const OrderCard: React.FC<OrderCardProps> = ({ task, now, onStart, onDone, onCancel, loading }) => {
   const elapsedSeconds = task.startedAt
     ? Math.max(0, Math.floor((now.getTime() - new Date(task.startedAt).getTime()) / 1000))
     : 0;
@@ -160,7 +161,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({ task, now, onStart, onDone
 
       {/* ── Action ──────────────────────────────────────── */}
       <div className="mt-auto pt-1">
-        <ActionButton task={task} onStart={onStart} onDone={onDone} loading={loading} />
+        <ActionButton task={task} onStart={onStart} onDone={onDone} onCancel={onCancel} loading={loading} />
       </div>
     </div>
   );
@@ -172,37 +173,64 @@ const ActionButton: React.FC<{
   task: KdsTaskDisplay;
   onStart: (id: number) => void;
   onDone: (id: number) => void;
+  onCancel: (id: number) => void;
   loading: boolean;
-}> = ({ task, onStart, onDone, loading }) => {
+}> = ({ task, onStart, onDone, onCancel, loading }) => {
   if (task.status === 'CREATED') {
     return (
-      <button
-        disabled={loading}
-        onClick={() => onStart(task.taskId)}
-        className="w-full flex items-center justify-center gap-2 px-4 py-4 rounded-lg bg-kds-gold text-black font-semibold text-sm hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-kds-gold/50 focus:ring-offset-1 focus:ring-offset-kds-card"
-      >
-        {loading
-          ? <span className="w-3.5 h-3.5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-          : <Play size={14} className="fill-current" />
-        }
-        Bắt đầu nấu
-      </button>
+      <div className="flex flex-col gap-2">
+        <button
+          disabled={loading}
+          onClick={() => onStart(task.taskId)}
+          className="w-full flex items-center justify-center gap-2 px-4 py-4 rounded-lg bg-kds-gold text-black font-semibold text-sm hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-kds-gold/50 focus:ring-offset-1 focus:ring-offset-kds-card"
+        >
+          {loading
+            ? <span className="w-3.5 h-3.5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+            : <Play size={14} className="fill-current" />
+          }
+          Bắt đầu nấu
+        </button>
+        <button
+          disabled={loading}
+          onClick={() => onCancel(task.taskId)}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-kds-redBg border border-kds-redText/40 text-kds-redText font-semibold text-sm hover:bg-red-900/30 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-kds-redText/40 focus:ring-offset-1 focus:ring-offset-kds-card"
+        >
+          {loading
+            ? <span className="w-3.5 h-3.5 border-2 border-kds-redText/30 border-t-kds-redText rounded-full animate-spin" />
+            : <Ban size={14} />
+          }
+          Hủy món
+        </button>
+      </div>
     );
   }
 
   if (task.status === 'COOKING') {
     return (
-      <button
-        disabled={loading}
-        onClick={() => onDone(task.taskId)}
-        className="w-full flex items-center justify-center gap-2 px-4 py-4 rounded-lg bg-kds-greenBg border border-kds-greenText/50 text-kds-greenText font-semibold text-sm hover:bg-green-900/30 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-kds-greenText/40 focus:ring-offset-1 focus:ring-offset-kds-card"
-      >
-        {loading
-          ? <span className="w-3.5 h-3.5 border-2 border-kds-greenText/30 border-t-kds-greenText rounded-full animate-spin" />
-          : <Check size={14} />
-        }
-        Hoàn thành
-      </button>
+      <div className="flex flex-col gap-2">
+        <button
+          disabled={loading}
+          onClick={() => onDone(task.taskId)}
+          className="w-full flex items-center justify-center gap-2 px-4 py-4 rounded-lg bg-kds-greenBg border border-kds-greenText/50 text-kds-greenText font-semibold text-sm hover:bg-green-900/30 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-kds-greenText/40 focus:ring-offset-1 focus:ring-offset-kds-card"
+        >
+          {loading
+            ? <span className="w-3.5 h-3.5 border-2 border-kds-greenText/30 border-t-kds-greenText rounded-full animate-spin" />
+            : <Check size={14} />
+          }
+          Hoàn thành
+        </button>
+        <button
+          disabled={loading}
+          onClick={() => onCancel(task.taskId)}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-kds-redBg border border-kds-redText/40 text-kds-redText font-semibold text-sm hover:bg-red-900/30 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-kds-redText/40 focus:ring-offset-1 focus:ring-offset-kds-card"
+        >
+          {loading
+            ? <span className="w-3.5 h-3.5 border-2 border-kds-redText/30 border-t-kds-redText rounded-full animate-spin" />
+            : <Ban size={14} />
+          }
+          Hủy món
+        </button>
+      </div>
     );
   }
 
