@@ -267,6 +267,11 @@ export default function App() {
         else if (action === 'start')   await kitchenAPI.startBatch(batchId);
         else if (action === 'done')    await kitchenAPI.doneBatch(batchId);
         await fetchAllBatches(true);
+        // start/done cascade to the underlying KitchenTasks server-side; refresh
+        // tasks so the Live tab reflects COOKING/DONE without waiting on polling.
+        if (action === 'start' || action === 'done') {
+          await fetchAllTasks(true);
+        }
         setError(null);
       } catch (err) {
         // SUGGESTED batches are purged after 90 minutes by a backend cron job.
@@ -283,7 +288,7 @@ export default function App() {
         setActionLoadingBatchIds((prev) => prev.filter((id) => id !== batchId));
       }
     },
-    [fetchAllBatches, batches, setBatches, setError, handleApiError]
+    [fetchAllBatches, fetchAllTasks, batches, setBatches, setError, handleApiError]
   );
 
   const suggestBatch = useCallback(async () => {
