@@ -45,7 +45,7 @@ coreInstance.interceptors.request.use(
 // Response interceptor for core API
 // NOTE: Only 401 (Unauthorized / token expired) should trigger logout.
 // 403 (Forbidden) means the current role lacks permission for that endpoint —
-// e.g. KITCHEN role cannot access /orders or /menu. This is expected and should NOT log out.
+// e.g. KITCHEN role cannot access /orders. This is expected and should NOT log out.
 coreInstance.interceptors.response.use(
   (response) => response,
   (error) => {

@@ -51,6 +51,59 @@ export const kitchenAPI = {
     coreInstance.put<ApiResponse<KitchenBatchResponse>>(`/kitchen/batches/${batchId}/done`),
 };
 
+// ─── Inventory & Menu — for "Báo hết" modal ──────────────────────────────────
+
+export interface KitchenInventoryItem {
+  id: number;
+  name: string;
+  unit: string;
+  currentQty: number;
+  lowStockThreshold: number;
+  imageUrl?: string | null;
+}
+
+export interface KitchenMenuItem {
+  id: number;
+  name: string;
+  imageUrl?: string | null;
+  available: boolean;
+}
+
+interface FullMenuCategoryWithItems {
+  id: number;
+  name: string;
+  items: KitchenMenuItem[];
+}
+
+export const inventoryAPI = {
+  /** GET /kitchen/inventory — both KITCHEN and MANAGER can read. */
+  list: () =>
+    coreInstance.get<ApiResponse<KitchenInventoryItem[]>>("/kitchen/inventory"),
+  /** PUT /kitchen/inventory/{id}/adjust — báo hết NL = newQuantity:0. */
+  adjust: (ingredientId: number, body: { newQuantity: number; note?: string }) =>
+    coreInstance.put<ApiResponse<KitchenInventoryItem>>(
+      `/kitchen/inventory/${ingredientId}/adjust`,
+      body,
+    ),
+};
+
+export const menuAPI = {
+  /** GET /menu — categories nested with items (price, available...). */
+  listFlat: async (): Promise<KitchenMenuItem[]> => {
+    const res = await coreInstance.get<ApiResponse<FullMenuCategoryWithItems[]>>("/menu");
+    return (res.data.data ?? []).flatMap((cat) => cat.items ?? []);
+  },
+};
+
+export const kitchenMenuAPI = {
+  /** POST /kitchen/menu-items/{id}/mark-unavailable — bếp tắt món. */
+  markUnavailable: (menuItemId: number, reason?: string) =>
+    coreInstance.post<ApiResponse<unknown>>(
+      `/kitchen/menu-items/${menuItemId}/mark-unavailable`,
+      { reason },
+    ),
+};
+
 // ─── Auth API ────────────────────────────────────────────────────────────────
 // /auth/login is permitAll — no role required.
 

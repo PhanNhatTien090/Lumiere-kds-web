@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ChefHat, LayoutGrid, BrainCircuit, CheckCircle2,
-  LogOut, Volume2, VolumeX, Wifi, WifiOff,
+  LogOut, Volume2, VolumeX, Wifi, WifiOff, AlertTriangle,
 } from 'lucide-react';
+import { OutOfStockModal } from './OutOfStockModal';
 
 interface HeaderProps {
   activeTab: 'live' | 'batching' | 'completed';
@@ -32,9 +33,11 @@ export const Header: React.FC<HeaderProps> = ({
   now,
 }) => {
   const clock = now.toLocaleTimeString('vi-VN', { hour12: false });
+  const [stockModalOpen, setStockModalOpen] = useState(false);
 
   return (
     <header className="flex items-center justify-between gap-4 px-6 py-3 bg-kds-bg border-b border-kds-border shrink-0">
+      <OutOfStockModal open={stockModalOpen} onClose={() => setStockModalOpen(false)} />
 
       {/* ── Brand ──────────────────────────────────────────────────── */}
       <div className="flex items-center gap-3 min-w-[210px]">
@@ -104,6 +107,16 @@ export const Header: React.FC<HeaderProps> = ({
             label="Đã xong"
           />
         </nav>
+
+        {/* Báo hết NL/Món */}
+        <button
+          onClick={() => setStockModalOpen(true)}
+          title="Báo hết nguyên liệu / món"
+          className="h-9 px-3 flex items-center gap-1.5 rounded-lg bg-kds-card border border-kds-border text-gray-300 hover:text-kds-gold hover:border-kds-gold/50 transition-colors focus:outline-none focus:ring-2 focus:ring-kds-gold/40 focus:ring-offset-1 focus:ring-offset-kds-bg"
+        >
+          <AlertTriangle size={15} />
+          <span className="text-sm font-medium">Báo hết</span>
+        </button>
 
         {/* Sound toggle */}
         <button
