@@ -1,7 +1,9 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://lumiere-restaurant-backend.onrender.com";
-const AI_BASE_URL = import.meta.env.VITE_AI_BASE_URL || "https://lumiere-restaurant-backend.onrender.com/api/v1";
+// Fallback trỏ về Railway prod — phòng trường hợp deploy quên set env VITE_*.
+// Khi dev local cần dùng localhost, set rõ trong .env.
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://lumiere-backend.up.railway.app/api/v1";
+const AI_BASE_URL = import.meta.env.VITE_AI_BASE_URL || "https://lumiere-backend.up.railway.app/api/v1";
 const IDEMPOTENCY_KEY_HEADER = "X-Idempotency-Key";
 export const ACCESS_TOKEN_STORAGE_KEY = "accessToken";
 export const AUTH_EXPIRED_EVENT = "kds-auth-expired";

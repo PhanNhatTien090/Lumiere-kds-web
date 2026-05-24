@@ -16,7 +16,8 @@ import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 
 // Backend WS URL (SockJS endpoint, NOT the raw ws:// protocol)
-const WS_URL = import.meta.env.VITE_WS_URL ?? 'http://localhost:8080/ws';
+// Fallback trỏ về Railway prod — phòng trường hợp deploy quên set env VITE_WS_URL.
+const WS_URL = import.meta.env.VITE_WS_URL ?? 'https://lumiere-backend.up.railway.app/api/v1/ws';
 
 /**
  * Create a shared STOMP client.
