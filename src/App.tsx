@@ -50,6 +50,8 @@ export default function App() {
     error,
     setTasks,
     setBatches,
+    upsertTask,
+    upsertBatch,
     setLoading,
     setError,
     reset,
@@ -174,9 +176,14 @@ export default function App() {
   }, [isAuthenticated, refreshAll]);
 
   // ─── Polling ──────────────────────────────────────────────────────────────
+  // Chỉ chạy như SAFETY NET khi WebSocket KHÔNG kết nối được. Khi WS live,
+  // polling sẽ race với upsert từ WS: response cũ chạy về sau khi WS đã đẩy
+  // task mới → setTasks(replace) xoá mất task vừa upsert → "nháy 1 cái rồi
+  // biến mất". Tắt poll khi WS connected để tránh tình trạng đó.
 
   useEffect(() => {
     if (!isAuthenticated) return;
+    if (isWebSocketConnected) return;
 
     let batchPollId: number | undefined;
 
@@ -208,7 +215,7 @@ export default function App() {
       window.clearTimeout(batchPollTimer);
       isPollingRef.current = false;
     };
-  }, [fetchAllBatches, fetchAllTasks, isAuthenticated]);
+  }, [fetchAllBatches, fetchAllTasks, isAuthenticated, isWebSocketConnected]);
 
   // ─── Clock ────────────────────────────────────────────────────────────────
 
@@ -244,17 +251,20 @@ export default function App() {
   const runTaskAction = useCallback(async (taskId: number, action: 'start' | 'done' | 'cancel') => {
     setActionLoadingTaskIds((prev) => [...prev, taskId]);
     try {
-      if (action === 'start')       await kitchenAPI.startTask(taskId);
-      else if (action === 'done')   await kitchenAPI.doneTask(taskId);
-      else if (action === 'cancel') await kitchenAPI.cancelTask(taskId);
-      await fetchAllTasks(true);
+      // Backend trả về task đã update; upsert ngay vào store để UI phản hồi tức thì.
+      // WebSocket cũng sẽ push event tương tự cho các tab khác — upsert là idempotent.
+      let res;
+      if (action === 'start')       res = await kitchenAPI.startTask(taskId);
+      else if (action === 'done')   res = await kitchenAPI.doneTask(taskId);
+      else                          res = await kitchenAPI.cancelTask(taskId);
+      upsertTask(res.data.data);
       setError(null);
     } catch (err) {
       handleApiError(err, 'Cập nhật task thất bại');
     } finally {
       setActionLoadingTaskIds((prev) => prev.filter((id) => id !== taskId));
     }
-  }, [fetchAllTasks, setError, handleApiError]);
+  }, [upsertTask, setError, handleApiError]);
 
   // ─── Actions: Batches ─────────────────────────────────────────────────────
 
@@ -262,16 +272,14 @@ export default function App() {
     async (batchId: number, action: 'accept' | 'confirm' | 'start' | 'done') => {
       setActionLoadingBatchIds((prev) => [...prev, batchId]);
       try {
-        if (action === 'accept')       await kitchenAPI.acceptBatch(batchId);
-        else if (action === 'confirm') await kitchenAPI.confirmBatch(batchId);
-        else if (action === 'start')   await kitchenAPI.startBatch(batchId);
-        else if (action === 'done')    await kitchenAPI.doneBatch(batchId);
-        await fetchAllBatches(true);
-        // start/done cascade to the underlying KitchenTasks server-side; refresh
-        // tasks so the Live tab reflects COOKING/DONE without waiting on polling.
-        if (action === 'start' || action === 'done') {
-          await fetchAllTasks(true);
-        }
+        // Upsert batch ngay sau khi action trả về. Tasks cascade (start/done)
+        // được backend đẩy qua /topic/kitchen/tasks — WebSocket lo cập nhật.
+        let res;
+        if (action === 'accept')       res = await kitchenAPI.acceptBatch(batchId);
+        else if (action === 'confirm') res = await kitchenAPI.confirmBatch(batchId);
+        else if (action === 'start')   res = await kitchenAPI.startBatch(batchId);
+        else                           res = await kitchenAPI.doneBatch(batchId);
+        upsertBatch(res.data.data);
         setError(null);
       } catch (err) {
         // SUGGESTED batches are purged after 90 minutes by a backend cron job.
@@ -288,7 +296,7 @@ export default function App() {
         setActionLoadingBatchIds((prev) => prev.filter((id) => id !== batchId));
       }
     },
-    [fetchAllBatches, fetchAllTasks, batches, setBatches, setError, handleApiError]
+    [upsertBatch, batches, setBatches, setError, handleApiError]
   );
 
   const suggestBatch = useCallback(async () => {
