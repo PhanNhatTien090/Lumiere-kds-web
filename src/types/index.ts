@@ -26,9 +26,17 @@ export interface KitchenTaskResponse {
   orderNote: string | null;
   expectedCookTime: number | null;
   status: KitchenTaskStatus;
+  orderedAt: string | null;
+  createdAt: string | null;
   startedAt: string | null;
   completedAt: string | null;
   actualCookSeconds: number | null;
+  /** Số giây đã chờ (đến giờ, hoặc đến completedAt nếu DONE/CANCELLED). */
+  waitedSeconds: number | null;
+  /** Ngưỡng SLA = expectedCookTime + đệm (backend tính). */
+  slaSeconds: number | null;
+  /** Đang trễ SLA và chưa DONE/CANCELLED. */
+  slaBreached: boolean | null;
 }
 
 // ─── Kitchen Batch (AI-assisted) ─────────────────────────────────────────────
@@ -66,7 +74,12 @@ export interface KdsTaskDisplay {
   orderNote: string | null;
   expectedCookTime: number | null;
   status: KitchenTaskStatus;
+  orderedAt: string | null;
+  createdAt: string | null;
   startedAt: string | null;
   completedAt: string | null;
   actualCookSeconds: number | null;
+  waitedSeconds: number | null;
+  slaSeconds: number | null;
+  slaBreached: boolean | null;
 }

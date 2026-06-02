@@ -55,9 +55,19 @@ export const OrderCard: React.FC<OrderCardProps> = ({ task, now, onStart, onDone
 
   const urgency = getUrgency(task.status, task.startedAt, now, task.expectedCookTime);
 
+  // ── SLA chờ (tính từ orderedAt, đếm sống bằng `now`; fallback waitedSeconds backend) ──
+  const isActive = task.status === 'CREATED' || task.status === 'COOKING';
+  const waitedSeconds = task.orderedAt
+    ? Math.max(0, Math.floor((now.getTime() - new Date(task.orderedAt).getTime()) / 1000))
+    : (task.waitedSeconds ?? 0);
+  const slaSec = task.slaSeconds ?? null;
+  const slaBreached = isActive && (slaSec != null ? waitedSeconds > slaSec : !!task.slaBreached);
+  const slaWarn = isActive && !slaBreached && slaSec != null && waitedSeconds > slaSec * 0.8;
+  const slaPct = slaSec ? Math.min(100, (waitedSeconds / slaSec) * 100) : 0;
+
   return (
     <div
-      className={`bg-kds-card rounded-xl p-4 flex flex-col gap-3 border transition-colors ${urgencyCardStyle[urgency]}`}
+      className={`bg-kds-card rounded-xl p-4 flex flex-col gap-3 border transition-colors ${urgencyCardStyle[urgency]} ${slaBreached ? 'ring-2 ring-kds-redText/70 animate-pulse' : ''}`}
     >
       {/* ── Header: thumbnail + title + badge ───────────── */}
       <div className="flex gap-3">
@@ -158,6 +168,31 @@ export const OrderCard: React.FC<OrderCardProps> = ({ task, now, onStart, onDone
         )}
         {task.status === 'CANCELLED' && <span className="text-gray-600">Đã hủy</span>}
       </div>
+
+      {/* ── SLA chờ (từ lúc khách đặt món) ──────────────── */}
+      {isActive && (
+        <div className="space-y-1">
+          <div className={`flex items-center justify-between text-xs ${slaBreached ? 'text-kds-redText font-bold' : slaWarn ? 'text-amber-400' : 'text-gray-500'}`}>
+            <span className="flex items-center gap-1">
+              <Clock size={12} className="shrink-0" />
+              Chờ {formatDuration(waitedSeconds)}
+              {slaBreached && <span className="ml-1">‼ Trễ SLA</span>}
+              {slaWarn && <span className="ml-1">⚠ Sắp trễ</span>}
+            </span>
+            {slaSec != null && (
+              <span className="tabular-nums text-gray-600">SLA {formatDuration(slaSec)}</span>
+            )}
+          </div>
+          {slaSec != null && (
+            <div className="h-1 rounded-full bg-black/30 overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${slaBreached ? 'bg-kds-redText' : slaWarn ? 'bg-amber-400' : 'bg-kds-greenText'}`}
+                style={{ width: `${slaPct}%` }}
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Action ──────────────────────────────────────── */}
       <div className="mt-auto pt-1">

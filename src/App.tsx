@@ -354,9 +354,14 @@ export default function App() {
         orderNote:         task.orderNote,
         expectedCookTime:  task.expectedCookTime,
         status:            task.status,
+        orderedAt:         task.orderedAt,
+        createdAt:         task.createdAt,
         startedAt:         task.startedAt,
         completedAt:       task.completedAt,
         actualCookSeconds: task.actualCookSeconds,
+        waitedSeconds:     task.waitedSeconds,
+        slaSeconds:        task.slaSeconds,
+        slaBreached:       task.slaBreached,
       }))
       .sort((a, b) => a.taskId - b.taskId);
   }, [tasks]);
@@ -380,9 +385,14 @@ export default function App() {
         orderNote:         task.orderNote,
         expectedCookTime:  task.expectedCookTime,
         status:            task.status,
+        orderedAt:         task.orderedAt,
+        createdAt:         task.createdAt,
         startedAt:         task.startedAt,
         completedAt:       task.completedAt,
         actualCookSeconds: task.actualCookSeconds,
+        waitedSeconds:     task.waitedSeconds,
+        slaSeconds:        task.slaSeconds,
+        slaBreached:       task.slaBreached,
       })),
     [completedTasksList]
   );
