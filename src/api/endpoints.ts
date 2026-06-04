@@ -114,4 +114,7 @@ export const authAPI = {
       { username, password }
     ),
   logout: () => coreInstance.post<ApiResponse<unknown>>("/auth/logout"),
+  /** POST /auth/change-password — any authenticated staff (incl. KITCHEN). */
+  changePassword: (payload: { currentPassword: string; newPassword: string }) =>
+    coreInstance.post<ApiResponse<unknown>>("/auth/change-password", payload),
 };

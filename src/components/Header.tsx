@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import {
   ChefHat, LayoutGrid, BrainCircuit, CheckCircle2,
-  LogOut, Volume2, VolumeX, Wifi, WifiOff, AlertTriangle,
+  LogOut, Volume2, VolumeX, Wifi, WifiOff, AlertTriangle, KeyRound,
 } from 'lucide-react';
 import { OutOfStockModal } from './OutOfStockModal';
+import { ChangePasswordModal } from './ChangePasswordModal';
 
 interface HeaderProps {
   activeTab: 'live' | 'batching' | 'completed';
@@ -34,10 +35,12 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const clock = now.toLocaleTimeString('vi-VN', { hour12: false });
   const [stockModalOpen, setStockModalOpen] = useState(false);
+  const [pwModalOpen, setPwModalOpen] = useState(false);
 
   return (
     <header className="flex items-center justify-between gap-4 px-6 py-3 bg-kds-bg border-b border-kds-border shrink-0">
       <OutOfStockModal open={stockModalOpen} onClose={() => setStockModalOpen(false)} />
+      <ChangePasswordModal open={pwModalOpen} onClose={() => setPwModalOpen(false)} />
 
       {/* ── Brand ──────────────────────────────────────────────────── */}
       <div className="flex items-center gap-3 min-w-[210px]">
@@ -125,6 +128,15 @@ export const Header: React.FC<HeaderProps> = ({
           className="w-9 h-9 flex items-center justify-center rounded-lg bg-kds-card border border-kds-border text-gray-400 hover:text-gray-100 hover:border-gray-500 transition-colors focus:outline-none focus:ring-2 focus:ring-kds-gold/40 focus:ring-offset-1 focus:ring-offset-kds-bg"
         >
           {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} className="text-gray-600" />}
+        </button>
+
+        {/* Đổi mật khẩu */}
+        <button
+          onClick={() => setPwModalOpen(true)}
+          title="Đổi mật khẩu"
+          className="w-9 h-9 flex items-center justify-center rounded-lg bg-kds-card border border-kds-border text-gray-400 hover:text-kds-gold hover:border-kds-gold/50 transition-colors focus:outline-none focus:ring-2 focus:ring-kds-gold/40 focus:ring-offset-1 focus:ring-offset-kds-bg"
+        >
+          <KeyRound size={16} />
         </button>
 
         {/* Logout */}
