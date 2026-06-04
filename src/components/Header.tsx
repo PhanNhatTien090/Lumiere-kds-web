@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import {
   ChefHat, LayoutGrid, BrainCircuit, CheckCircle2,
-  LogOut, Volume2, VolumeX, Wifi, WifiOff, AlertTriangle, KeyRound,
+  LogOut, Volume2, VolumeX, Wifi, WifiOff, AlertTriangle, KeyRound, PackagePlus,
 } from 'lucide-react';
 import { OutOfStockModal } from './OutOfStockModal';
+import { ImportStockModal } from './ImportStockModal';
 import { ChangePasswordModal } from './ChangePasswordModal';
 
 interface HeaderProps {
@@ -35,11 +36,13 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const clock = now.toLocaleTimeString('vi-VN', { hour12: false });
   const [stockModalOpen, setStockModalOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
   const [pwModalOpen, setPwModalOpen] = useState(false);
 
   return (
     <header className="flex items-center justify-between gap-4 px-6 py-3 bg-kds-bg border-b border-kds-border shrink-0">
       <OutOfStockModal open={stockModalOpen} onClose={() => setStockModalOpen(false)} />
+      <ImportStockModal open={importModalOpen} onClose={() => setImportModalOpen(false)} />
       <ChangePasswordModal open={pwModalOpen} onClose={() => setPwModalOpen(false)} />
 
       {/* ── Brand ──────────────────────────────────────────────────── */}
@@ -110,6 +113,16 @@ export const Header: React.FC<HeaderProps> = ({
             label="Đã xong"
           />
         </nav>
+
+        {/* Nhập kho (kèm hạn dùng) */}
+        <button
+          onClick={() => setImportModalOpen(true)}
+          title="Nhập kho nguyên liệu (kèm hạn dùng)"
+          className="h-9 px-3 flex items-center gap-1.5 rounded-lg bg-kds-card border border-kds-border text-gray-300 hover:text-kds-gold hover:border-kds-gold/50 transition-colors focus:outline-none focus:ring-2 focus:ring-kds-gold/40 focus:ring-offset-1 focus:ring-offset-kds-bg"
+        >
+          <PackagePlus size={15} />
+          <span className="text-sm font-medium">Nhập kho</span>
+        </button>
 
         {/* Báo hết NL/Món */}
         <button

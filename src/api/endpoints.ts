@@ -85,6 +85,21 @@ export const inventoryAPI = {
       `/kitchen/inventory/${ingredientId}/adjust`,
       body,
     ),
+  /**
+   * POST /kitchen/inventory/stock/import — nhập kho kèm hạn dùng (tạo lô mới, FEFO).
+   * Khai báo hạn dùng theo số ngày sử dụng (shelfLifeDays) hoặc ngày hết hạn (expiryDate).
+   */
+  importStock: (body: {
+    ingredientId: number;
+    quantity: number;
+    expiryDate?: string; // yyyy-MM-dd
+    shelfLifeDays?: number;
+    note?: string;
+  }) =>
+    coreInstance.post<ApiResponse<KitchenInventoryItem>>(
+      "/kitchen/inventory/stock/import",
+      body,
+    ),
 };
 
 export const menuAPI = {
